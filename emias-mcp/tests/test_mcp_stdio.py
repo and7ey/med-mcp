@@ -54,6 +54,7 @@ class StdioSmokeTest(unittest.TestCase):
                             "booking_prepare",
                             "booking_execute",
                             "cancel_execute",
+                            "document_download",
                         ):
                             self.assertIn(required, names)
 

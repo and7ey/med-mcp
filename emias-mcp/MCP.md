@@ -1,6 +1,6 @@
 # MCP-сервер медкарты ЕМИАС
 
-Реализация по требованиям к безопасности MCP-серверов: stdio MCP, безопасный
+Реализация по правилам `~/Dev/vtb/bank-mcp-handbook`: stdio MCP, безопасный
 вход через официальную страницу mos.ru, состояние без секретов в чате,
 read-only первый релиз, нормализованные DTO, сборки `.mcpb` и onefile для
 OpenCode.
@@ -18,9 +18,9 @@ emias_mcp/
   errors.py            # безопасные ошибки
 run_server.py          # точка входа
 bank_extension/        # упаковка .mcpb
-../scripts/
-  build_mcpb.sh
-  build_opencode.py
+scripts/
+  build_emias_mcpb.sh
+  build_emias_opencode.sh
 opencode.json.example
 ```
 
@@ -61,6 +61,7 @@ session_status = bootstrap
 | `vaccinations` | дата, инфекции, вакцина, доза |
 | `prescriptions` | дата, препарат, статус, id |
 | `referrals` | срок действия, тип, организация |
+| `document_download` | скачать документ в локальный каталог (PDF/скан/официальный/архив) |
 | `appointments` | текущие записи: дата/время, врач, место |
 | `specialities` | id и названия специальностей |
 | `purposes` | поводы обращения по категориям |
@@ -73,6 +74,12 @@ session_status = bootstrap
 | `cancel_execute` | отменить запись (одноразовый токен) |
 
 Периоды: `half_year`, `year`, `all_time` (`month` ЕМИАС отвергает).
+
+`document_download(document_id, variant)` берёт `document_id` из `visits`,
+`analyzes`, `vaccinations`, `prescriptions` или `referrals` и сохраняет файл в
+`<каталог состояния>/documents/` с правами `0600`. Варианты: `pdf` (по
+умолчанию), `scan`, `official`, `archive`. Содержимое файла в ответ не
+попадает — только путь, размер и формат.
 
 В ответах нет токенов, cookie, номера полиса, СНИЛС, URL с query и сырых
 JSON. Лимиты (`limit`) ограничены 200.
@@ -130,8 +137,8 @@ slots
 ### Claude Desktop `.mcpb`
 
 ```bash
-../scripts/build_mcpb.sh emias-mcp
-# dist/emias-medcard-mcp-0.2.0.mcpb
+scripts/build_emias_mcpb.sh
+# dist/emias-medcard-mcp-0.3.0.mcpb
 ```
 
 Требуется `uv`, `npx`. Манифест: `manifest_version 0.4`, запуск через
@@ -140,8 +147,8 @@ slots
 ### OpenCode onefile
 
 ```bash
-../scripts/build_opencode.py emias-mcp
-# dist/opencode/emias-medcard-mcp-0.2.0-darwin-arm64
+scripts/build_emias_opencode.sh
+# dist/opencode/emias-medcard-mcp-0.3.0-darwin-arm64
 ```
 
 Требуется нативный Python с PyInstaller, Playwright, mcp. Chrome остаётся
@@ -152,7 +159,7 @@ slots
   "mcp": {
     "emias-medcard": {
       "type": "local",
-      "command": ["/absolute/path/emias-medcard-mcp-0.2.0-darwin-arm64"],
+      "command": ["/absolute/path/emias-medcard-mcp-0.3.0-darwin-arm64"],
       "enabled": true,
       "timeout": 60000
     }
@@ -171,8 +178,10 @@ slots
   `needs_complaints=true`; `booking_execute` без жалоб корректно отказал.
 * Реальные read-only вызовы через MCP: `quick_login`, `patients`, `visits`,
   `vaccinations`.
-* `.mcpb`: распакован, `uv sync`, MCP smoke — 23 инструмента, bootstrap.
-* onefile: собран под `darwin-arm64`, MCP smoke — 23 инструмента.
+* Реальное скачивание: PDF посещения и анализа сохранены с правами `0600`,
+  оба файла — валидные PDF (`%PDF`).
+* `.mcpb`: распакован, `uv sync`, MCP smoke — 24 инструмента, bootstrap.
+* onefile: собран под `darwin-arm64`, MCP smoke — 24 инструмента.
 * OpenCode: сервер подключён через `opencode.json`, реальные вызовы
   `session_status → quick_login → patients → visits → slots` прошли.
 * Браузерный worker: запуск Chrome, ожидание, закрытие без оставшихся
@@ -187,6 +196,9 @@ slots
   медкарту и требует настоящих симптомов пользователя. Проверены
   read-only prepare и отказ без жалоб; полный execute покрыт тестами на
   фейковом клиенте.
+* Сканы (`document/scan`), официальный PDF и архив: на тестовых документах
+  сканов не было, сервер отвечал `520`.
+* Полный PDF медкарты (`/api/1/ehr-pdf`): отвечает `404`, в MCP не включён.
 * Windows/Linux-сборки и Keychain-поведение вне macOS.
 
 ## Тесты

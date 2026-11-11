@@ -348,6 +348,20 @@ GET /api/1/self-appointment/appointments?ehrId=<ehr>
 
 ---
 
+### 4.9 Скачивание документов
+
+| Метод | Путь | Что отдаёт |
+|---|---|---|
+| GET | `/api/1/document/pdf?ehrId=&documentId=` | PDF документа (посещение, анализ) |
+| GET | `/api/1/document/scan?ehrId=&documentId=` | скан документа |
+| GET | `/api/1/document/officialPDF?ehrId=&officialDocumentPDFId=` | официальный PDF |
+| GET | `/api/1/document/official-archive?ehrId=&officialDocumentPDFId=` | архив официального PDF |
+| GET | `/api/3/document?ehrId=&documentId=&extendedScansType=YES` | карточка: `documentHtml`, `officialDocumentPDFId`, `scans`, `isArchiveDownloadAllowed` |
+
+Проверено на живом API: `document/pdf` отдаёт валидный PDF для посещений и
+анализов. `document/scan` отвечает `520`, если скана нет. Полный PDF медкарты
+(`/api/1/ehr-pdf`) на текущем аккаунте отвечает `404` — в MCP не включён.
+
 ## 5. Запись к врачу
 
 ### 5.1 Шаги

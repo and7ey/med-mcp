@@ -97,6 +97,68 @@ class Emias(EmiasClient):
                 result[doc_type] = {"error": str(exc)}
         return result
 
+    # ------------------------------------------------------------ документы
+
+    def document_info(self, ehr_id: str, document_id: str) -> dict[str, Any]:
+        """Детали документа: ``GET /api/3/document``.
+
+        Содержит HTML документа, ``officialDocumentPDFId``, список сканов и
+        признаки ``isDownload``/``isArchiveDownloadAllowed``.
+        """
+        data = self.request(
+            "GET",
+            "/document",
+            version="/3",
+            query={"ehrId": ehr_id, "documentId": document_id, "extendedScansType": "YES"},
+        )
+        if isinstance(data, dict) and isinstance(data.get("data"), dict):
+            return data["data"]
+        return data if isinstance(data, dict) else {}
+
+    def document_pdf(self, ehr_id: str, document_id: str, *, timeout: float = 120.0) -> bytes:
+        """PDF документа: ``GET /api/1/document/pdf``."""
+        return self.request(
+            "GET",
+            "/document/pdf",
+            query={"ehrId": ehr_id, "documentId": document_id},
+            binary=True,
+            timeout=timeout,
+        )
+
+    def document_scan(self, ehr_id: str, document_id: str, *, timeout: float = 120.0) -> bytes:
+        """Скан документа: ``GET /api/1/document/scan``."""
+        return self.request(
+            "GET",
+            "/document/scan",
+            query={"ehrId": ehr_id, "documentId": document_id},
+            binary=True,
+            timeout=timeout,
+        )
+
+    def document_official_pdf(
+        self, ehr_id: str, official_document_pdf_id: str, *, timeout: float = 120.0
+    ) -> bytes:
+        """Официальный PDF: ``GET /api/1/document/officialPDF``."""
+        return self.request(
+            "GET",
+            "/document/officialPDF",
+            query={"ehrId": ehr_id, "officialDocumentPDFId": official_document_pdf_id},
+            binary=True,
+            timeout=timeout,
+        )
+
+    def document_archive(
+        self, ehr_id: str, official_document_pdf_id: str, *, timeout: float = 120.0
+    ) -> bytes:
+        """Архив официального PDF: ``GET /api/1/document/official-archive``."""
+        return self.request(
+            "GET",
+            "/document/official-archive",
+            query={"ehrId": ehr_id, "officialDocumentPDFId": official_document_pdf_id},
+            binary=True,
+            timeout=timeout,
+        )
+
     def visits(self, ehr_id: str, period: str = "half_year") -> Any:
         """Посещения врача / осмотры.
 

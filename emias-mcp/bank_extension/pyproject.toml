@@ -1,6 +1,6 @@
 [project]
 name = "emias-medcard-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP-сервер медкарты ЕМИАС (read-only)"
 requires-python = ">=3.10"
 dependencies = [

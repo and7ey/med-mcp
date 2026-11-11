@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "emias-medcard-mcp",
   "display_name": "ЕМИАС — медкарта",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Медкарта ЕМИАС (lk.emias.mos.ru): пациенты, посещения, анализы, прививки, назначения, направления и свободное время. Только чтение; вход через официальную страницу mos.ru.",
   "author": {
     "name": "local"

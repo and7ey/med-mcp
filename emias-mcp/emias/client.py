@@ -238,6 +238,7 @@ class EmiasClient:
         query: Mapping[str, Any] | None = None,
         body: Any = None,
         binary: bool = False,
+        timeout: float | None = None,
     ) -> Any:
         """Публичный запрос к API с авторизацией и автообновлением токена."""
         return self._request(
@@ -247,6 +248,7 @@ class EmiasClient:
             query=query,
             body=body,
             binary=binary,
+            timeout=timeout,
         )
 
     def _request(
@@ -258,6 +260,7 @@ class EmiasClient:
         query: Mapping[str, Any] | None = None,
         body: Any = None,
         binary: bool = False,
+        timeout: float | None = None,
         auth_flow: bool = False,
         use_token: bool = True,
         retry: bool = True,
@@ -295,7 +298,7 @@ class EmiasClient:
                 params=params or None,
                 json=body,
                 headers=headers,
-                timeout=self.timeout,
+                timeout=timeout or self.timeout,
             )
         except requests.RequestException as exc:
             raise EmiasError(f"Сетевая ошибка: {exc}", method=method, url=url) from exc
@@ -321,6 +324,7 @@ class EmiasClient:
                     query=query,
                     body=body,
                     binary=binary,
+                    timeout=timeout,
                     auth_flow=auth_flow,
                     use_token=use_token,
                     retry=False,

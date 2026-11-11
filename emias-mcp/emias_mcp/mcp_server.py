@@ -3,7 +3,7 @@
 Инструменты возвращают нормализованные DTO и никогда — токены, пароли,
 SMS-коды, номера полисов, сырые ответы API или URL с query.
 
-Версия 0.2.0: read-only данные и запись/отмена к врачу через
+Версия 0.3.0: read-only данные и запись/отмена к врачу через
 prepare → явное подтверждение → execute.
 """
 
@@ -26,7 +26,8 @@ INSTRUCTIONS = """\
    (телефон/пароль/код). Секреты вводятся только на mos.ru, не в чате.
 3. bootstrap_status — проверить, пойманы ли токены; затем quick_login.
 4. patients — кто доступен; далее visits, analyzes, vaccinations, prescriptions,
-   referrals, appointments, specialities, purposes, slots.
+   referrals, appointments, specialities, purposes, slots. Документ из любого
+   списка можно скачать через document_download(document_id).
 
 Все инструменты только читают, кроме записи/отмены. Браузер используется ТОЛЬКО для
 первичного входа.
@@ -222,6 +223,31 @@ def prescriptions(
 def referrals(patient_id: str | None = None, limit: int = 50) -> dict:
     """Направления: дата действия, тип, организация, врач."""
     return _safe(_service_instance().referrals, patient_id, limit)
+
+
+@mcp.tool()
+def document_download(
+    document_id: str,
+    patient_id: str | None = None,
+    variant: str = "pdf",
+    official_document_pdf_id: str | None = None,
+) -> dict:
+    """Скачать документ медкарты в локальный каталог (права 0600).
+
+    document_id берётся из visits, analyzes, vaccinations, prescriptions или
+    referrals. variant: pdf (обычный PDF) | scan (скан) | official
+    (официальный PDF) | archive (архив). Для official/archive можно передать
+    official_document_pdf_id; если нет — сервер возьмёт его из карточки.
+
+    Возвращает локальный путь, размер и формат. Содержимое в чат не выводится.
+    """
+    return _safe(
+        _service_instance().document_download,
+        document_id,
+        patient_id,
+        variant,
+        official_document_pdf_id,
+    )
 
 
 @mcp.tool()

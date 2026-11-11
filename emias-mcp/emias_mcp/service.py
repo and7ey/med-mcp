@@ -6,6 +6,8 @@ URL с query и служебных идентификаторов, которы�
 
 from __future__ import annotations
 
+import os
+import re
 import secrets
 import threading
 import time
@@ -15,7 +17,7 @@ from typing import Any
 from emias.api import Emias, Slot, find_key, parse_slots
 from emias.auth import Session
 from emias.errors import AuthRequired as ApiAuthRequired
-from emias.errors import EmiasError
+from emias.errors import EmiasError, NotFound
 from emias.interview import fetch_tags
 
 from .errors import AuthRequired, McpError
@@ -723,6 +725,87 @@ class EmiasService:
 
         return _Client(session, on_save)
 
+    # ------------------------------------------------------------ документы
+
+    def document_download(
+        self,
+        document_id: str,
+        patient_id: str | None = None,
+        variant: str = "pdf",
+        official_document_pdf_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Скачать документ медкарты в локальный каталог (0600).
+
+        variant: pdf (обычный PDF), scan (скан), official (официальный PDF),
+        archive (архив). Для official/archive нужен officialDocumentPDFId;
+        если он не передан, берётся из карточки документа.
+        """
+        variant = (variant or "pdf").strip().lower()
+        if variant not in {"pdf", "scan", "official", "archive"}:
+            raise McpError(
+                "bad_argument",
+                "variant должен быть pdf, scan, official или archive.",
+            )
+        raw_id = str(document_id or "").strip()
+        safe_id = re.sub(r"[^A-Za-z0-9_-]", "", raw_id)
+        if not safe_id or safe_id != raw_id:
+            raise McpError("bad_argument", "document_id пустой или содержит недопустимые символы.")
+
+        ehr, client = self._patient_client(patient_id)
+        official_id = str(official_document_pdf_id or "").strip()
+        if variant in {"official", "archive"} and not official_id:
+            try:
+                info = client.document_info(ehr, safe_id)
+            except NotFound as exc:
+                raise McpError("document_not_found", "Документ не найден.") from exc
+            except EmiasError as exc:
+                self._log_api_error("document_info", exc)
+                raise McpError("download_failed", "ЕМИАС не отдал карточку документа.") from exc
+            official_id = str(info.get("officialDocumentPDFId") or "").strip()
+            if not official_id:
+                raise McpError(
+                    "no_official_pdf",
+                    "У этого документа нет официального PDF или архива.",
+                )
+
+        try:
+            if variant == "pdf":
+                content = client.document_pdf(ehr, safe_id)
+            elif variant == "scan":
+                content = client.document_scan(ehr, safe_id)
+            elif variant == "official":
+                content = client.document_official_pdf(ehr, official_id)
+            else:
+                content = client.document_archive(ehr, official_id)
+        except NotFound as exc:
+            raise McpError("document_not_found", "Документ или файл не найден.") from exc
+        except EmiasError as exc:
+            self._log_api_error(f"document_{variant}", exc)
+            if exc.status == 520:
+                raise McpError(
+                    "file_unavailable",
+                    "Для этого документа нет файла в выбранном виде. "
+                    "Попробуйте другой variant.",
+                ) from exc
+            raise McpError("download_failed", "Не удалось скачать документ.") from exc
+
+        extension = _guess_extension(content)
+        target_dir = self.directory / "documents"
+        target_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path = target_dir / f"emias-document-{safe_id}.{extension}"
+        with path.open("wb") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            handle.write(content)
+        self.log.event("document_downloaded", variant=variant, size=len(content))
+        return {
+            "ok": True,
+            "document_id": safe_id,
+            "variant": variant,
+            "path": str(path),
+            "size": len(content),
+            "format": extension,
+        }
+
     def _patient_client(self, patient_id: str | None) -> tuple[str, _Client]:
         client = self._client()
         ehr = patient_id or self._default_patient(client)
@@ -975,3 +1058,13 @@ def _appointment(item: dict[str, Any]) -> dict[str, Any]:
         "place": _text(_first(item, "lpuName", "muName", "address")),
         "type": _text(item.get("type")),
     }
+
+
+def _guess_extension(content: bytes) -> str:
+    if content.startswith(b"%PDF"):
+        return "pdf"
+    if content.startswith(b"\x89PNG"):
+        return "png"
+    if content.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    return "bin"
