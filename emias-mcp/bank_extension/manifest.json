@@ -1,0 +1,37 @@
+{
+  "manifest_version": "0.4",
+  "name": "emias-medcard-mcp",
+  "display_name": "ЕМИАС — медкарта",
+  "version": "0.2.0",
+  "description": "Медкарта ЕМИАС (lk.emias.mos.ru): пациенты, посещения, анализы, прививки, назначения, направления и свободное время. Только чтение; вход через официальную страницу mos.ru.",
+  "author": {
+    "name": "local"
+  },
+  "server": {
+    "type": "uv",
+    "entry_point": "src/run_server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "src/run_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "EMIAS_MCP_HOME": "${user_config.storage_dir}"
+      }
+    }
+  },
+  "user_config": {
+    "storage_dir": {
+      "type": "directory",
+      "title": "Каталог состояния",
+      "description": "Локальный каталог для журнала и метаданных. Токены хранятся в Keychain macOS. Не используйте сетевые и облачные папки.",
+      "default": "${HOME}/.emias-mcp-claude",
+      "required": true
+    }
+  },
+  "tools_generated": true
+}

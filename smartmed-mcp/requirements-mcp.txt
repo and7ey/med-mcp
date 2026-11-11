@@ -1,0 +1,4 @@
+-r requirements.txt
+mcp>=1.12,<2
+playwright>=1.48
+certifi>=2024.2

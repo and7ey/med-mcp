@@ -1,0 +1,37 @@
+{
+  "manifest_version": "0.4",
+  "name": "smartmed-mcp",
+  "display_name": "SmartMed — медкарта",
+  "version": "0.2.0",
+  "description": "Личный кабинет SmartMed (smartmed.pro): профиль, пациенты, приёмы, документы медкарты, направления и назначения. Только чтение; вход через официальную страницу smartmed.pro.",
+  "author": {
+    "name": "local"
+  },
+  "server": {
+    "type": "uv",
+    "entry_point": "src/run_server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "src/run_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "SMARTMED_MCP_HOME": "${user_config.storage_dir}"
+      }
+    }
+  },
+  "user_config": {
+    "storage_dir": {
+      "type": "directory",
+      "title": "Каталог состояния",
+      "description": "Локальный каталог для журнала, скачанных документов и метаданных. Токены хранятся в Keychain macOS. Не используйте сетевые и облачные папки.",
+      "default": "${HOME}/.smartmed-mcp-claude",
+      "required": true
+    }
+  },
+  "tools_generated": true
+}

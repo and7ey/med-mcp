@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emias"
+version = "0.2.0"
+description = "Неофициальный клиент медкарты ЕМИАС (lk.emias.mos.ru)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["requests>=2.31"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.12,<2", "playwright>=1.48", "certifi>=2024.2"]
+
+[project.scripts]
+emias = "emias.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["emias*", "emias_mcp*"]
